@@ -1,12 +1,30 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exemplo</title>
-    <link rel="stylesheet" href="index.css">
+    <title>Document</title>
 </head>
+<style> {  display: flex;  justify-content: center;  align-items: center;  height: 100vh;  margin: 0;  background-color: #ddd;}
+    .game-container {  position: relative;  width: 400px;  height: 400px;  border: 2px solid #333;}
+    .snake, .food {  position: absolute;  width: 20px;  height: 20px;  background-color: #333;}
+    .food {  background-color: red;}</style>
 <body>
+  <link rel="stylesheet" href="styles.css"></head><body>  <div class="game-container">    <div class="snake" id="snake"></div>    <div class="food" id="food"></div>  </div>  <script src="script.js"></script></body></html>
+<script>
+const snake = document.getElementById('snake');const food = document.getElementById('food');
+let snakeX = 0;let snakeY = 0;let foodX;let foodY;let speedX = 1;let speedY = 0;let score = 0;
+function updateSnake() {  snakeX += speedX * 20;  snakeY += speedY * 20;  snake.style.left = snakeX + 'px';  snake.style.top = snakeY + 'px';}
+function updateFood() {  foodX = Math.floor(Math.random() * 20) * 20;  foodY = Math.floor(Math.random() * 20) * 20;  food.style.left = foodX + 'px';  food.style.top = foodY + 'px';}
+function checkCollision() {  if (snakeX === foodX && snakeY === foodY) {    score++;    updateFood();  }}
+document.addEventListener('keydown', (event) => {  if (event.key === 'ArrowUp' && speedY !== 1) {    speedX = 0;    speedY = -1;  } else if (event.key === 'ArrowDown' && speedY !== -1) {    speedX = 0;    speedY = 1;  } else if (event.key === 'ArrowLeft' && speedX !== 1) {    speedX = -1;    speedY = 0;  } else if (event.key === 'ArrowRight' && speedX !== -1) {    speedX = 1;    speedY = 0;  }});
+function gameLoop() {  updateSnake();  checkCollision();  setTimeout(gameLoop, 100);}
+updateFood();gameLoop();
+
+
+</script>
+
 
     <div></div>
     <h1>Oque mais você esperaria de mim?</h1>
