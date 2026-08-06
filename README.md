@@ -13,3 +13,5 @@ Linguagens de Programação
 
 Repetição até a exaustão, com
 correção leva a perfeição
+
+# frase de exemplo
