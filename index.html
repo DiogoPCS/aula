@@ -2,47 +2,93 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joguinho do Sapinho vs Sapinhos Vermelhos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Joguinho do Sapinho - Com Pedras Grandes e Mosca Ajustada</title>
     <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
         body {
             margin: 0;
             padding: 0;
-            background: #2b4532;
+            background: radial-gradient(circle at 50% 20%, #34573f, #1c2f22);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Arial, sans-serif;
             color: #fff;
             user-select: none;
+            padding: 10px;
         }
 
         h1 {
-            margin-bottom: 5px;
-            font-size: 2rem;
+            margin: 5px 0;
+            font-size: 1.8rem;
             text-shadow: 2px 2px #111;
+            text-align: center;
         }
 
         #scoreboard {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
         }
+
+        #scoreboard span { font-weight: bold; color: #ffd54f; }
 
         .game-container {
             position: relative;
+            max-width: 95vw;
         }
 
         canvas {
             border: 4px solid #fff;
             border-radius: 8px;
             background: #4caf50;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
             display: block;
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
         }
 
-        /* Tela de Game Over estilizada */
+        #phaseBanner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #ffd54f;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            white-space: nowrap;
+            z-index: 5;
+        }
+        #phaseBanner.show { opacity: 1; }
+
+        #pauseOverlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            border-radius: 8px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         #gameOverScreen {
             display: none;
             position: absolute;
@@ -50,7 +96,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.85);
             border-radius: 8px;
             flex-direction: column;
             align-items: center;
@@ -60,60 +106,116 @@
         }
 
         #gameOverScreen h2 {
-            font-size: 2.2rem;
+            font-size: 2rem;
             color: #ff5252;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             text-shadow: 2px 2px #000;
         }
 
         #gameOverScreen p {
-            font-size: 1.1rem;
-            margin-bottom: 20px;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        #newRecord {
+            color: #ffd54f;
+            font-weight: bold;
+            display: none;
+            margin-bottom: 12px;
         }
 
         #restartBtn {
             background-color: #8bc34a;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 12px 28px;
             font-size: 1rem;
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 10px;
         }
 
-        #restartBtn:hover {
-            background-color: #7cb342;
-        }
+        #restartBtn:hover { background-color: #7cb342; }
+        #restartBtn:active { transform: scale(0.96); }
 
         .instructions {
-            margin-top: 15px;
-            font-size: 0.9rem;
+            margin-top: 12px;
+            font-size: 0.85rem;
             color: #c8e6c9;
             text-align: center;
+            max-width: 420px;
+        }
+
+        #touchControls {
+            display: none;
+            margin-top: 14px;
+            grid-template-columns: repeat(3, 56px);
+            grid-template-rows: repeat(3, 56px);
+            gap: 4px;
+        }
+
+        #touchControls button {
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+        #touchControls button:active { background: rgba(255,255,255,0.35); }
+
+        @media (pointer: coarse) {
+            #touchControls { display: grid; }
         }
     </style>
 </head>
 <body>
 
     <h1>🐸 Joguinho do Sapinho</h1>
-    <div id="scoreboard">Placar: <span id="score">0</span> | Fase: <span id="level">1</span></div>
-    
+    <div id="scoreboard">
+        <div>Placar: <span id="score">0</span></div>
+        <div>Fase: <span id="level">1</span></div>
+        <div>Recorde: <span id="highscore">0</span></div>
+    </div>
+
     <div class="game-container">
         <canvas id="gameCanvas" width="400" height="400"></canvas>
-        
-        <!-- Tela de Game Over embutida -->
+
+        <div id="phaseBanner"></div>
+
+        <div id="pauseOverlay">
+            <div>⏸ Pausado</div>
+            <div style="font-size:0.9rem; color:#c8e6c9;">Pressione P para continuar</div>
+        </div>
+
         <div id="gameOverScreen">
             <h2>Game Over!</h2>
-            <p>Os sapinhos vermelhos te pegaram!<br>Pontuação final: <span id="finalScore">0</span></p>
+            <p>Um dos sapos te pegou!</p>
+            <p>Pontuação final: <span id="finalScore">0</span></p>
+            <div id="newRecord">🏆 Novo recorde!</div>
             <button id="restartBtn" onclick="restartGame()">Jogar Novamente</button>
         </div>
     </div>
 
     <div class="instructions">
-        Use as **Setas** ou **W, A, S, D** para fugir dos **Sapinhos Vermelhos** e pegar as moscas!
+        Use as <b>Setas</b> ou <b>W A S D</b> para fugir dos inimigos e pegar a mosca 🪰!<br>
+        🔴 Vermelho | 🟡 Amarelo (2x2) | 🔵 Azul (Rápido!)<br>
+        Pressione <b>P</b> para pausar.
+    </div>
+
+    <div id="touchControls">
+        <div></div>
+        <button onclick="moveFrog('up')">▲</button>
+        <div></div>
+        <button onclick="moveFrog('left')">◀</button>
+        <div></div>
+        <button onclick="moveFrog('right')">▶</button>
+        <div></div>
+        <button onclick="moveFrog('down')">▼</button>
+        <div></div>
     </div>
 
     <script>
@@ -121,108 +223,517 @@
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const levelElement = document.getElementById('level');
+        const highscoreElement = document.getElementById('highscore');
         const gameOverScreen = document.getElementById('gameOverScreen');
         const finalScoreElement = document.getElementById('finalScore');
+        const newRecordElement = document.getElementById('newRecord');
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        const phaseBanner = document.getElementById('phaseBanner');
 
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
 
         let score = 0;
         let level = 1;
-        let gameSpeed = 480; // Velocidade ainda mais devagar e relaxada (tempo em milissegundos por passo)
+        let highScore = 0;
+        let baseSpeed = 440;
+        let gameSpeed = baseSpeed;
         let isGameOver = false;
+        let isPaused = false;
 
-        // Posições iniciais padrão
         const originalFrogPos = { x: 10, y: 10 };
-        let frog = { x: 10, y: 10 };
-        let fly = { x: 5, y: 5 };
+        let frog = { x: 10, y: 10, prevX: 10, prevY: 10, hopT: 1 };
+        let fly = { x: 5, y: 5, pulse: 0, type: 'normal', bornAt: 0 };
+        
         let redFrogs = [];
+        let yellowFrogs = [];
+        let blueFrogs = [];
+        let particles = [];
+        let obstacles = []; // { x, y, w, h }
+
+        const phaseOrder = ['normal', 'patrol', 'obstacles', 'golden'];
+        const phaseNames = {
+            normal: 'Perseguição',
+            patrol: 'Sapos Distraídos 😴',
+            obstacles: 'Pedras Grandes 🪨',
+            golden: 'Mosca Dourada ✨'
+        };
+        let phaseType = 'normal';
+
+        let enemyTickCounter = 0;
+        const blueMoveEveryNTicks = 1;   
+        const redMoveEveryNTicks = 2;    
+        const yellowMoveEveryNTicks = 3; 
+
+        const GOLDEN_FLY_DURATION = 4200;
 
         let changingDirection = false;
+        let gameInterval = null;
+        let renderRAF = null;
 
-        document.addEventListener('keydown', changeDirection);
+        // ---------- Áudio simples ----------
+        let audioCtx = null;
+        function playTone(freq, duration, type = 'sine', vol = 0.15) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+        const sfxEat = () => { playTone(660, 0.12, 'square'); playTone(880, 0.15, 'square', 0.1); };
+        const sfxLevelUp = () => { playTone(523, 0.1); playTone(659, 0.1); playTone(784, 0.18); };
+        const sfxDeath = () => { playTone(180, 0.4, 'sawtooth', 0.2); };
 
-        function changeDirection(event) {
-            if (isGameOver || changingDirection) return;
+        // ---------- Controles ----------
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'p' || event.key === 'P') {
+                togglePause();
+                return;
+            }
+            const map = {
+                ArrowLeft: 'left', a: 'left', A: 'left',
+                ArrowUp: 'up', w: 'up', W: 'up',
+                ArrowRight: 'right', d: 'right', D: 'right',
+                ArrowDown: 'down', s: 'down', S: 'down'
+            };
+            if (map[event.key]) moveFrog(map[event.key]);
+        });
 
-            const key = event.key;
+        let touchStartX = 0, touchStartY = 0;
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        canvas.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                moveFrog(dx > 0 ? 'right' : 'left');
+            } else if (Math.abs(dy) > 10) {
+                moveFrog(dy > 0 ? 'down' : 'up');
+            }
+        }, { passive: true });
+
+        function moveFrog(dir) {
+            if (isGameOver || isPaused || changingDirection) return;
+            let moved = false;
+            frog.prevX = frog.x;
+            frog.prevY = frog.y;
+
+            if (dir === 'left' && frog.x > 0 && !isBlocked(frog.x - 1, frog.y)) { frog.x--; moved = true; }
+            if (dir === 'up' && frog.y > 0 && !isBlocked(frog.x, frog.y - 1)) { frog.y--; moved = true; }
+            if (dir === 'right' && frog.x < tileCount - 1 && !isBlocked(frog.x + 1, frog.y)) { frog.x++; moved = true; }
+            if (dir === 'down' && frog.y < tileCount - 1 && !isBlocked(frog.x, frog.y + 1)) { frog.y++; moved = true; }
+
+            if (moved) {
+                frog.hopT = 0;
+                changingDirection = true;
+                setTimeout(() => { changingDirection = false; }, 100);
+                checkCollision();
+            }
+        }
+
+        function togglePause() {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            pauseOverlay.style.display = isPaused ? 'flex' : 'none';
+            if (isPaused) {
+                clearInterval(gameInterval);
+            } else {
+                gameInterval = setInterval(gameLoop, gameSpeed);
+            }
+        }
+
+        // ---------- Auxiliares de Colisão ----------
+        function isOccupiedByEnemy(x, y, excludeEnemy = null) {
+            const hitRed = redFrogs.some(e => e !== excludeEnemy && e.x === x && e.y === y);
+            const hitBlue = blueFrogs.some(e => e !== excludeEnemy && e.x === x && e.y === y);
+            const hitYellow = yellowFrogs.some(e => e !== excludeEnemy &&
+                x >= e.x && x <= e.x + 1 && y >= e.y && y <= e.y + 1);
+            return hitRed || hitBlue || hitYellow;
+        }
+
+        function isTooCloseToOtherEnemies(x, y, minDistance = 3, excludeEnemy = null) {
+            const check = (ex, ey) => Math.abs(x - ex) + Math.abs(y - ey) < minDistance;
+
+            for (let e of redFrogs) {
+                if (e !== excludeEnemy && check(e.x, e.y)) return true;
+            }
+            for (let e of blueFrogs) {
+                if (e !== excludeEnemy && check(e.x, e.y)) return true;
+            }
+            for (let e of yellowFrogs) {
+                if (e !== excludeEnemy && (
+                    check(e.x, e.y) || check(e.x + 1, e.y) ||
+                    check(e.x, e.y + 1) || check(e.x + 1, e.y + 1)
+                )) return true;
+            }
+            return false;
+        }
+
+        function isBlocked(x, y) {
+            return obstacles.some(o => x >= o.x && x < o.x + o.w && y >= o.y && y < o.y + o.h);
+        }
+
+        function isOccupied(x, y, minDistFromFrog = 0) {
+            if (Math.abs(x - frog.x) + Math.abs(y - frog.y) < minDistFromFrog) return true;
+            if (isOccupiedByEnemy(x, y)) return true;
+            if (fly.x === x && fly.y === y) return true;
+            if (isBlocked(x, y)) return true;
+            return false;
+        }
+
+        function canPlaceYellowFrog(x, y, minDistFromFrog = 3) {
+            if (x < 0 || x >= tileCount - 1 || y < 0 || y >= tileCount - 1) return false;
+            for (let dx = 0; dx <= 1; dx++) {
+                for (let dy = 0; dy <= 1; dy++) {
+                    const tx = x + dx;
+                    const ty = y + dy;
+                    if (Math.abs(tx - frog.x) + Math.abs(ty - frog.y) < minDistFromFrog) return false;
+                    if (isOccupiedByEnemy(tx, ty)) return false;
+                    if (isTooCloseToOtherEnemies(tx, ty, 3)) return false;
+                    if (fly.x === tx && fly.y === ty) return false;
+                    if (isBlocked(tx, ty)) return false;
+                }
+            }
+            return true;
+        }
+
+        function isValidYellowPos(nx, ny, enemy) {
+            if (nx < 0 || nx > tileCount - 2 || ny < 0 || ny > tileCount - 2) return false;
             
-            if ((key === 'ArrowLeft' || key === 'a' || key === 'A') && frog.x > 0) {
-                frog.x--;
-                changingDirection = true;
-            }
-            if ((key === 'ArrowUp' || key === 'w' || key === 'W') && frog.y > 0) {
-                frog.y--;
-                changingDirection = true;
-            }
-            if ((key === 'ArrowRight' || key === 'd' || key === 'D') && frog.x < tileCount - 1) {
-                frog.x++;
-                changingDirection = true;
-            }
-            if ((key === 'ArrowDown' || key === 's' || key === 'S') && frog.y < tileCount - 1) {
-                frog.y++;
-                changingDirection = true;
-            }
+            if (fly.x >= nx && fly.x <= nx + 1 && fly.y >= ny && fly.y <= ny + 1) return false;
 
-            setTimeout(() => { changingDirection = false; }, 120);
-            checkCollision();
+            for (let dx = 0; dx <= 1; dx++) {
+                for (let dy = 0; dy <= 1; dy++) {
+                    const tx = nx + dx;
+                    const ty = ny + dy;
+                    if (isBlocked(tx, ty)) return false;
+                    if (isOccupiedByEnemy(tx, ty, enemy)) return false;
+                }
+            }
+            return true;
         }
 
         function randomFly() {
-            fly.x = Math.floor(Math.random() * tileCount);
-            fly.y = Math.floor(Math.random() * tileCount);
+            let x, y, tries = 0;
+            do {
+                x = Math.floor(Math.random() * tileCount);
+                y = Math.floor(Math.random() * tileCount);
+                tries++;
+            } while (isOccupied(x, y, 3) && tries < 60);
+            fly.x = x;
+            fly.y = y;
+            fly.pulse = 0;
+            fly.type = phaseType === 'golden' ? 'golden' : 'normal';
+            fly.bornAt = performance.now();
+        }
+
+        // ---------- Spawns ----------
+        function spawnSingleEnemyAtEdge() {
+            let x, y, tries = 0;
+            do {
+                x = Math.random() > 0.5 ? 0 : tileCount - 1;
+                y = Math.random() > 0.5 ? 0 : tileCount - 1;
+                tries++;
+            } while ((isOccupied(x, y, 4) || isTooCloseToOtherEnemies(x, y, 3)) && tries < 60);
+            return { x, y, hopT: 1, prevX: x, prevY: y };
+        }
+
+        function spawnYellowEnemyAtEdge() {
+            let x, y, tries = 0;
+            do {
+                x = Math.random() > 0.5 ? 0 : tileCount - 2;
+                y = Math.random() > 0.5 ? 0 : tileCount - 2;
+                tries++;
+            } while (!canPlaceYellowFrog(x, y, 4) && tries < 80);
+            return { x, y, hopT: 1, prevX: x, prevY: y };
+        }
+
+        function setupEnemiesForLevel() {
+            redFrogs = [];
+            yellowFrogs = [];
+            blueFrogs = [];
+
+            let redCount = 1;
+            let yellowCount = 0;
+            let blueCount = 0;
+
+            if (level === 2) {
+                redCount = 2;
+            } else if (level === 3) {
+                redCount = 1;
+                yellowCount = 1;
+            } else if (level === 4) {
+                redCount = 2;
+                yellowCount = 1;
+            } else if (level >= 5) {
+                blueCount = 1;
+                redCount = (level % 2 === 0) ? 2 : 1;
+                yellowCount = 1;
+            }
+
+            for (let i = 0; i < redCount; i++) redFrogs.push(spawnSingleEnemyAtEdge());
+            for (let i = 0; i < yellowCount; i++) yellowFrogs.push(spawnYellowEnemyAtEdge());
+            for (let i = 0; i < blueCount; i++) blueFrogs.push(spawnSingleEnemyAtEdge());
+        }
+
+        function setupPhase() {
+            phaseType = phaseOrder[(level - 1) % phaseOrder.length];
+            showPhaseBanner(`Fase ${level}: ${phaseNames[phaseType]}`);
+
+            obstacles = [];
+            if (phaseType === 'obstacles') {
+                const count = Math.min(2 + Math.floor(level / 3), 4);
+                const possibleSizes = [
+                    { w: 2, h: 2 },
+                    { w: 3, h: 2 },
+                    { w: 2, h: 3 }
+                ];
+
+                let tries = 0;
+                while (obstacles.length < count && tries < 300) {
+                    const size = possibleSizes[Math.floor(Math.random() * possibleSizes.length)];
+                    let ox = Math.floor(Math.random() * (tileCount - size.w + 1));
+                    let oy = Math.floor(Math.random() * (tileCount - size.h + 1));
+
+                    // Garante espaço livre ao redor do nascimento do jogador (10, 10)
+                    let overlapsFrogArea = false;
+                    for (let dx = -1; dx <= size.w; dx++) {
+                        for (let dy = -1; dy <= size.h; dy++) {
+                            if (ox + dx === originalFrogPos.x && oy + dy === originalFrogPos.y) {
+                                overlapsFrogArea = true;
+                            }
+                        }
+                    }
+
+                    // Evita sobrepor outras pedras
+                    let overlapsOtherObstacle = false;
+                    for (let o of obstacles) {
+                        if (ox < o.x + o.w + 1 && ox + size.w + 1 > o.x &&
+                            oy < o.y + o.h + 1 && oy + size.h + 1 > o.y) {
+                            overlapsOtherObstacle = true;
+                            break;
+                        }
+                    }
+
+                    if (!overlapsFrogArea && !overlapsOtherObstacle) {
+                        obstacles.push({ x: ox, y: oy, w: size.w, h: size.h });
+                    }
+                    tries++;
+                }
+            }
+
+            setupEnemiesForLevel();
+
+            if (phaseType === 'patrol') {
+                const corners = [
+                    { x: 1, y: 1 },
+                    { x: tileCount - 2, y: 1 },
+                    { x: 1, y: tileCount - 2 },
+                    { x: tileCount - 2, y: tileCount - 2 }
+                ];
+                let cIdx = 0;
+
+                const reposition = (e, isYellow = false) => {
+                    const pt = corners[cIdx % corners.length];
+                    cIdx++;
+                    if (isYellow) {
+                        const px = Math.min(pt.x, tileCount - 2);
+                        const py = Math.min(pt.y, tileCount - 2);
+                        if (canPlaceYellowFrog(px, py, 2)) {
+                            e.prevX = e.x; e.prevY = e.y;
+                            e.x = px; e.y = py; e.hopT = 0;
+                        }
+                    } else {
+                        if (!isOccupied(pt.x, pt.y, 2)) {
+                            e.prevX = e.x; e.prevY = e.y;
+                            e.x = pt.x; e.y = pt.y; e.hopT = 0;
+                        }
+                    }
+                };
+
+                redFrogs.forEach(e => reposition(e));
+                blueFrogs.forEach(e => reposition(e));
+                yellowFrogs.forEach(e => reposition(e, true));
+            }
+        }
+
+        let bannerTimeout = null;
+        function showPhaseBanner(text) {
+            phaseBanner.innerText = text;
+            phaseBanner.classList.add('show');
+            clearTimeout(bannerTimeout);
+            bannerTimeout = setTimeout(() => phaseBanner.classList.remove('show'), 2200);
+        }
+
+        // ---------- Movimentação Inimiga ----------
+        function getBestMoveSingle(enemy) {
+            const dirs = [[0,-1], [0,1], [-1,0], [1,0]];
+            const isFlyTile = (x, y) => (x === fly.x && y === fly.y);
+
+            if (phaseType === 'patrol') {
+                const randomDirs = [...dirs].sort(() => Math.random() - 0.5);
+                for (let [dx, dy] of randomDirs) {
+                    let nx = enemy.x + dx, ny = enemy.y + dy;
+                    if (nx >= 0 && nx < tileCount && ny >= 0 && ny < tileCount &&
+                        !isBlocked(nx, ny) && !isOccupiedByEnemy(nx, ny, enemy) && !isFlyTile(nx, ny)) {
+                        return { x: nx, y: ny };
+                    }
+                }
+            } else {
+                let preferredX = enemy.x + (enemy.x < frog.x ? 1 : enemy.x > frog.x ? -1 : 0);
+                let preferredY = enemy.y + (enemy.y < frog.y ? 1 : enemy.y > frog.y ? -1 : 0);
+
+                let candidates = [
+                    { x: preferredX, y: preferredY },
+                    { x: preferredX, y: enemy.y },
+                    { x: enemy.x, y: preferredY }
+                ];
+
+                for (let cand of candidates) {
+                    if (cand.x >= 0 && cand.x < tileCount && cand.y >= 0 && cand.y < tileCount &&
+                        !isBlocked(cand.x, cand.y) && !isOccupiedByEnemy(cand.x, cand.y, enemy) && !isFlyTile(cand.x, cand.y)) {
+                        return cand;
+                    }
+                }
+            }
+            return { x: enemy.x, y: enemy.y };
+        }
+
+        function getBestMoveYellow(enemy) {
+            const dirs = [[0,-1], [0,1], [-1,0], [1,0]];
+            const isDumb = Math.random() < 0.4;
+
+            if (isDumb || phaseType === 'patrol') {
+                const randomDirs = [...dirs].sort(() => Math.random() - 0.5);
+                for (let [dx, dy] of randomDirs) {
+                    let nx = enemy.x + dx, ny = enemy.y + dy;
+                    if (isValidYellowPos(nx, ny, enemy)) {
+                        return { x: nx, y: ny };
+                    }
+                }
+            } else {
+                let preferredX = enemy.x + (enemy.x < frog.x ? 1 : enemy.x > frog.x ? -1 : 0);
+                let preferredY = enemy.y + (enemy.y < frog.y ? 1 : enemy.y > frog.y ? -1 : 0);
+
+                let candidates = [
+                    { x: preferredX, y: preferredY },
+                    { x: preferredX, y: enemy.y },
+                    { x: enemy.x, y: preferredY }
+                ];
+
+                for (let cand of candidates) {
+                    if (isValidYellowPos(cand.x, cand.y, enemy)) {
+                        return cand;
+                    }
+                }
+            }
+            return { x: enemy.x, y: enemy.y };
         }
 
         function checkCollision() {
             if (isGameOver) return;
 
-            // Pegou a mosca (Passou de fase/subiu de nível)
             if (frog.x === fly.x && frog.y === fly.y) {
-                score += 10;
+                const points = fly.type === 'golden' ? 25 : 10;
+                score += points;
                 level++;
                 scoreElement.innerText = score;
                 levelElement.innerText = level;
-                
+                sfxEat();
+                sfxLevelUp();
+                spawnParticles(fly.x, fly.y, fly.type === 'golden' ? '#ffd54f' : '#fff176');
+
+                setupPhase();
                 randomFly();
-                
-                // Reposiciona o sapo no ponto de origem
+
+                frog.prevX = frog.x;
+                frog.prevY = frog.y;
                 frog.x = originalFrogPos.x;
                 frog.y = originalFrogPos.y;
+                frog.hopT = 0;
 
-                // Adiciona um novo sapinho vermelho nas bordas
-                redFrogs.push({
-                    x: Math.random() > 0.5 ? 0 : tileCount - 1,
-                    y: Math.random() > 0.5 ? 0 : tileCount - 1
-                });
-                
-                // Reposiciona todos os inimigos nas bordas ao passar de fase para dar respiro
-                redFrogs.forEach(enemy => {
-                    enemy.x = Math.random() > 0.5 ? 0 : tileCount - 1;
-                    enemy.y = Math.random() > 0.5 ? 0 : tileCount - 1;
-                });
+                gameSpeed = Math.max(160, baseSpeed - (level - 1) * 15);
+                clearInterval(gameInterval);
+                if (!isPaused) gameInterval = setInterval(gameLoop, gameSpeed);
             }
         }
 
         function updateGame() {
             if (isGameOver) return;
 
-            redFrogs.forEach(enemy => {
-                if (enemy.x < frog.x) enemy.x++;
-                else if (enemy.x > frog.x) enemy.x--;
+            if (fly.type === 'golden' && performance.now() - fly.bornAt > GOLDEN_FLY_DURATION) {
+                randomFly();
+            }
 
-                if (enemy.y < frog.y) enemy.y++;
-                else if (enemy.y > frog.y) enemy.y--;
+            enemyTickCounter++;
 
-                // Game Over se o sapinho vermelho encostar no seu sapo
-                if (enemy.x === frog.x && enemy.y === frog.y) {
-                    triggerGameOver();
-                }
-            });
+            // Sapos Azuis
+            if (enemyTickCounter % blueMoveEveryNTicks === 0) {
+                blueFrogs.forEach(enemy => {
+                    enemy.prevX = enemy.x;
+                    enemy.prevY = enemy.y;
+                    const nextPos = getBestMoveSingle(enemy);
+                    enemy.x = nextPos.x;
+                    enemy.y = nextPos.y;
+                    enemy.hopT = 0;
+                    if (enemy.x === frog.x && enemy.y === frog.y) triggerGameOver();
+                });
+            }
+
+            // Sapos Vermelhos
+            if (enemyTickCounter % redMoveEveryNTicks === 0) {
+                redFrogs.forEach(enemy => {
+                    enemy.prevX = enemy.x;
+                    enemy.prevY = enemy.y;
+                    const nextPos = getBestMoveSingle(enemy);
+                    enemy.x = nextPos.x;
+                    enemy.y = nextPos.y;
+                    enemy.hopT = 0;
+                    if (enemy.x === frog.x && enemy.y === frog.y) triggerGameOver();
+                });
+            }
+
+            // Sapos Amarelos (2x2)
+            if (enemyTickCounter % yellowMoveEveryNTicks === 0) {
+                yellowFrogs.forEach(enemy => {
+                    enemy.prevX = enemy.x;
+                    enemy.prevY = enemy.y;
+                    const nextPos = getBestMoveYellow(enemy);
+                    enemy.x = nextPos.x;
+                    enemy.y = nextPos.y;
+                    enemy.hopT = 0;
+
+                    if (frog.x >= enemy.x && frog.x <= enemy.x + 1 &&
+                        frog.y >= enemy.y && frog.y <= enemy.y + 1) {
+                        triggerGameOver();
+                    }
+                });
+            }
         }
 
         function triggerGameOver() {
             isGameOver = true;
             finalScoreElement.innerText = score;
+            sfxDeath();
+
+            if (score > highScore) {
+                highScore = score;
+                highscoreElement.innerText = highScore;
+                newRecordElement.style.display = 'block';
+            } else {
+                newRecordElement.style.display = 'none';
+            }
+
             gameOverScreen.style.display = 'flex';
             clearInterval(gameInterval);
         }
@@ -230,67 +741,236 @@
         function restartGame() {
             score = 0;
             level = 1;
-            gameSpeed = 480;
+            gameSpeed = baseSpeed;
             isGameOver = false;
-            
+            isPaused = false;
+
             scoreElement.innerText = score;
             levelElement.innerText = level;
-            
+            pauseOverlay.style.display = 'none';
+
             frog.x = originalFrogPos.x;
             frog.y = originalFrogPos.y;
-            
-            redFrogs = []; // Começa sem sapinhos vermelhos
+            frog.prevX = frog.x;
+            frog.prevY = frog.y;
+            frog.hopT = 1;
+
+            particles = [];
+            enemyTickCounter = 0;
+            setupPhase();
             randomFly();
-            
+
             gameOverScreen.style.display = 'none';
-            
+
             clearInterval(gameInterval);
             gameInterval = setInterval(gameLoop, gameSpeed);
+        }
+
+        function spawnParticles(gx, gy, color) {
+            const cx = gx * gridSize + gridSize / 2;
+            const cy = gy * gridSize + gridSize / 2;
+            for (let i = 0; i < 10; i++) {
+                const angle = (Math.PI * 2 * i) / 10;
+                particles.push({
+                    x: cx, y: cy,
+                    vx: Math.cos(angle) * 2.2,
+                    vy: Math.sin(angle) * 2.2,
+                    life: 1,
+                    color
+                });
+            }
+        }
+
+        function updateParticles() {
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.045;
+            });
+            particles = particles.filter(p => p.life > 0);
+        }
+
+        // ---------- Desenho ----------
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function drawFrogSprite(px, py, bodyColor, eyeColor, size) {
+            const pad = (gridSize - size) / 2;
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.roundRect(px + pad, py + pad, size, size, 6);
+            ctx.fill();
+
+            ctx.fillStyle = eyeColor;
+            ctx.beginPath();
+            ctx.arc(px + gridSize * 0.32, py + gridSize * 0.35, 2.4, 0, Math.PI * 2);
+            ctx.arc(px + gridSize * 0.68, py + gridSize * 0.35, 2.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawYellowFrogSprite(px, py, hopLift) {
+            const size = gridSize * 2 - 4;
+            const pad = 2;
+            ctx.fillStyle = '#fbc02d';
+            ctx.beginPath();
+            ctx.roundRect(px + pad, py + pad - hopLift, size, size, 10);
+            ctx.fill();
+
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(px + (gridSize * 2) * 0.32, py + (gridSize * 2) * 0.35 - hopLift, 4.5, 0, Math.PI * 2);
+            ctx.arc(px + (gridSize * 2) * 0.68, py + (gridSize * 2) * 0.35 - hopLift, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawFlySprite() {
+            fly.pulse = (fly.pulse + 0.25) % (Math.PI * 2);
+            const cx = fly.x * gridSize + gridSize / 2;
+            const cy = fly.y * gridSize + gridSize / 2;
+
+            if (fly.type === 'golden') {
+                const elapsed = performance.now() - fly.bornAt;
+                const remaining = Math.max(0, 1 - elapsed / GOLDEN_FLY_DURATION);
+                ctx.strokeStyle = '#ffd54f';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(cx, cy, gridSize / 2 - 1, -Math.PI / 2, -Math.PI / 2 + remaining * Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            const wingFlap = Math.sin(fly.pulse) * 0.35;
+
+            // Corpo da Mosca
+            ctx.fillStyle = fly.type === 'golden' ? '#ffb300' : '#212121';
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 3.5, 4.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Asas ajustadas no tórax (costas da mosca)
+            ctx.fillStyle = fly.type === 'golden' ? 'rgba(255, 245, 157, 0.85)' : 'rgba(220, 240, 255, 0.8)';
+
+            // Asa Esquerda (Trás/Lado)
+            ctx.beginPath();
+            ctx.ellipse(-4, 0, 5 + wingFlap * 2, 2.8, -Math.PI / 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Asa Direita (Trás/Lado)
+            ctx.beginPath();
+            ctx.ellipse(4, 0, 5 + wingFlap * 2, 2.8, Math.PI / 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cabeça
+            ctx.fillStyle = fly.type === 'golden' ? '#ffe082' : '#424242';
+            ctx.beginPath();
+            ctx.arc(0, -2, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Olhos Vermelhos
+            ctx.fillStyle = '#e53935';
+            ctx.beginPath();
+            ctx.arc(-1.2, -3, 1.1, 0, Math.PI * 2);
+            ctx.arc(1.2, -3, 1.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
         }
 
         function drawGame() {
             ctx.fillStyle = '#4caf50';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Desenha a Mosca
-            ctx.fillStyle = '#212121';
-            ctx.beginPath();
-            ctx.arc(
-                (fly.x * gridSize) + gridSize / 2,
-                (fly.y * gridSize) + gridSize / 2,
-                gridSize / 3,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
+            // Grade
+            ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+            for (let i = 1; i < tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
 
-            // Desenha o Sapo Principal (Verde)
-            ctx.fillStyle = '#8bc34a';
-            ctx.fillRect(frog.x * gridSize + 2, frog.y * gridSize + 2, gridSize - 4, gridSize - 4);
-            
-            ctx.fillStyle = '#000';
-            ctx.fillRect(frog.x * gridSize + 4, frog.y * gridSize + 4, 3, 3);
-            ctx.fillRect(frog.x * gridSize + 13, frog.y * gridSize + 4, 3, 3);
+            // Pedras Grandes (2x2, 3x2, etc.)
+            obstacles.forEach(o => {
+                const wPx = o.w * gridSize - 4;
+                const hPx = o.h * gridSize - 4;
+                ctx.fillStyle = '#5d4037';
+                ctx.beginPath();
+                ctx.roundRect(o.x * gridSize + 2, o.y * gridSize + 2, wPx, hPx, 8);
+                ctx.fill();
 
-            // Desenha os Sapinhos Vermelhos (Inimigos)
+                // Detalhe de luz na pedra
+                ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                ctx.beginPath();
+                ctx.arc(o.x * gridSize + gridSize * 0.6, o.y * gridSize + gridSize * 0.6, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Desenhar Mosca 🪰
+            drawFlySprite();
+
+            // Sapo Jogador (Verde)
+            frog.hopT = Math.min(1, frog.hopT + 0.25);
+            const fx = lerp(frog.prevX, frog.x, frog.hopT) * gridSize;
+            const fy = lerp(frog.prevY, frog.y, frog.hopT) * gridSize;
+            const hopLift = Math.sin(frog.hopT * Math.PI) * 3;
+            drawFrogSprite(fx, fy - hopLift, '#8bc34a', '#000', gridSize - 4);
+
+            // Sapos Vermelhos
             redFrogs.forEach(enemy => {
-                ctx.fillStyle = '#f44336';
-                ctx.fillRect(enemy.x * gridSize + 2, enemy.y * gridSize + 2, gridSize - 4, gridSize - 4);
+                enemy.hopT = Math.min(1, (enemy.hopT ?? 1) + 0.25);
+                const ex = lerp(enemy.prevX, enemy.x, enemy.hopT) * gridSize;
+                const ey = lerp(enemy.prevY, enemy.y, enemy.hopT) * gridSize;
+                drawFrogSprite(ex, ey, '#f44336', '#fff', gridSize - 4);
+            });
 
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(enemy.x * gridSize + 4, enemy.y * gridSize + 4, 3, 3);
-                ctx.fillRect(enemy.x * gridSize + 13, enemy.y * gridSize + 4, 3, 3);
+            // Sapos Azuis
+            blueFrogs.forEach(enemy => {
+                enemy.hopT = Math.min(1, (enemy.hopT ?? 1) + 0.35);
+                const ex = lerp(enemy.prevX, enemy.x, enemy.hopT) * gridSize;
+                const ey = lerp(enemy.prevY, enemy.y, enemy.hopT) * gridSize;
+                drawFrogSprite(ex, ey, '#2196f3', '#fff', gridSize - 4);
+            });
+
+            // Sapos Amarelos (Grandes 2x2)
+            yellowFrogs.forEach(enemy => {
+                enemy.hopT = Math.min(1, (enemy.hopT ?? 1) + 0.25);
+                const ex = lerp(enemy.prevX, enemy.x, enemy.hopT) * gridSize;
+                const ey = lerp(enemy.prevY, enemy.y, enemy.hopT) * gridSize;
+                const yHop = Math.sin(enemy.hopT * Math.PI) * 3;
+                drawYellowFrogSprite(ex, ey, yHop);
+            });
+
+            // Partículas
+            particles.forEach(p => {
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
             });
         }
 
         function gameLoop() {
             updateGame();
-            drawGame();
         }
 
-        // Inicialização
+        function renderLoop() {
+            updateParticles();
+            drawGame();
+            renderRAF = requestAnimationFrame(renderLoop);
+        }
+
+        // ---------- Inicialização ----------
+        setupPhase();
         randomFly();
-        let gameInterval = setInterval(gameLoop, gameSpeed);
+        gameInterval = setInterval(gameLoop, gameSpeed);
+        renderRAF = requestAnimationFrame(renderLoop);
     </script>
 
 </body>
